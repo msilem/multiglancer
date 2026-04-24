@@ -5,4 +5,5 @@ export interface View {
   enabled: boolean
   scale: number
   zoom: number
+  reloadKey?: number
 }
