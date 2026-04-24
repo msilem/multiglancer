@@ -22,13 +22,13 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
 
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
       - name: Build SPA
-        run: npx quasar build
+        run: npm run build
 
       - name: Add .nojekyll (serves _folders)
         run: touch dist/spa/.nojekyll
