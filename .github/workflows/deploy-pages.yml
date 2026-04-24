@@ -31,12 +31,12 @@ jobs:
         run: npm run build
 
       - name: Add .nojekyll (serves _folders)
-        run: touch dist/spa/.nojekyll
+        run: touch docs/.nojekyll
 
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist/spa
+          path: docs
 
       - uses: actions/deploy-pages@v4
