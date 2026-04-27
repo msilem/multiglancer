@@ -26,7 +26,7 @@
             :disable="!appState.urlList.length" @click="nextUrl" title="Next URL" />
         </div>
 
-        <q-btn dense flat icon="camera_alt" color="white" @click="captureScreenshots" class="q-mr-xs">
+        <q-btn v-if="isElectron" dense flat icon="camera_alt" color="white" @click="captureScreenshots" class="q-mr-xs">
           <q-tooltip>Capture all views</q-tooltip>
         </q-btn>
         <q-btn dense flat icon="file_download" color="white" @click="doExport" class="q-mr-xs">
@@ -171,6 +171,8 @@ import ViewsEdit from 'src/components/ViewsEdit.vue';
 import { appState, exportAppState, importAppState } from 'src/stores/appState';
 
 const $q = useQuasar()
+
+const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI;
 
 const importDialog = ref(false)
 const importText = ref('')

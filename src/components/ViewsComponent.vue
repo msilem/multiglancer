@@ -5,7 +5,7 @@
         <div style="padding: 0 1em; font-weight: 600;">{{ view.name }} {{ view.width }}x{{
           view.height }}</div>
         <div>
-          <q-btn title="capture" icon="camera_alt" @click="captureSingleView(view, i)" round outline flat></q-btn>
+          <q-btn v-if="isElectron" title="capture" icon="camera_alt" @click="captureSingleView(view, i)" round outline flat></q-btn>
           <q-btn title="reload" icon="refresh" @click="reloadView(view)" round outline flat></q-btn>
           <q-btn title="full screen" icon="fullscreen" @click="makeFullScreen(i)" round outline flat></q-btn>
           <q-btn title="close" icon="close" @click="view.enabled = false" round outline flat></q-btn>
@@ -45,6 +45,8 @@ import { useQuasar } from 'quasar';
 import { appState } from 'src/stores/appState';
 
 const $q = useQuasar();
+
+const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI;
 
 async function captureSingleView(view: any, i: number) {
   try {
