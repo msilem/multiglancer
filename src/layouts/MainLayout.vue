@@ -26,6 +26,9 @@
             :disable="!appState.urlList.length" @click="nextUrl" title="Next URL" />
         </div>
 
+        <q-btn dense flat icon="camera_alt" color="white" @click="captureScreenshots" class="q-mr-xs">
+          <q-tooltip>Capture all views</q-tooltip>
+        </q-btn>
         <q-btn dense flat icon="file_download" color="white" @click="doExport" class="q-mr-xs">
           <q-tooltip>Export config</q-tooltip>
         </q-btn>
@@ -94,7 +97,9 @@
           <q-slider v-model="appState.zoom" :step="0.01" :min="0.1" :max="1" :label="true" />
         </q-item-section>
         <q-item-section side>
-          <q-icon size="md" name="zoom_in" />
+          <q-btn round flat dense icon="settings_backup_restore" @click="resetZooms" title="Reset all zooms">
+            <q-tooltip>Reset global and individual zoom</q-tooltip>
+          </q-btn>
         </q-item-section>
       </q-item>
     </q-card>
@@ -264,6 +269,97 @@ function refresh() {
 
 function togglePanel() {
   panelOpen.value = !panelOpen.value
+}
+
+function resetZooms() {
+  appState.value.zoom = 1;
+  appState.value.views.forEach(v => {
+    v.scale = 1;
+  });
+}
+
+async function captureScreenshots() {
+  try {
+    let capturedCount = 0;
+    
+    // Save original scroll position
+    const originalScrollX = window.scrollX;
+    const originalScrollY = window.scrollY;
+
+    for (let i = 0; i < appState.value.views.length; i++) {
+      if (!appState.value.views[i].enabled) continue;
+      
+      const svgEl = document.getElementById('viewComp' + i);
+      if (!svgEl) continue;
+      
+      // Scroll the view into the center of the viewport so it is fully captured
+      svgEl.scrollIntoView({ behavior: 'instant', block: 'center', inline: 'center' });
+      
+      // Wait a moment for the scroll to happen and the page to paint
+      await new Promise(r => setTimeout(r, 400));
+      
+      // Hide overlays so they aren't captured
+      document.querySelectorAll('.view-overlay').forEach((el: any) => el.style.display = 'none');
+      
+      const rect = svgEl.getBoundingClientRect();
+      const v = appState.value.views[i];
+      
+      // Capture the ENTIRE viewport to avoid Electron bounds-check crashes on negative coordinates
+      const dataUrl = await (window as any).electronAPI.capturePage();
+      
+      // Restore overlays
+      document.querySelectorAll('.view-overlay').forEach((el: any) => el.style.display = '');
+      
+      if (!dataUrl) continue;
+      
+      // We still stretch the captured screenshot back to the original view dimensions 
+      // to ensure the saved file matches v.width x v.height
+      const img = new Image();
+      await new Promise(r => { img.onload = r; img.src = dataUrl; });
+      
+      const sliceCanvas = document.createElement('canvas');
+      sliceCanvas.width = v.width;
+      sliceCanvas.height = v.height;
+      const sCtx = sliceCanvas.getContext('2d');
+      if (!sCtx) continue;
+      
+      // Crop the captured viewport image to the SVG's exact visual dimensions
+      sCtx.drawImage(
+        img, 
+        rect.left, rect.top, rect.width, rect.height, 
+        0, 0, sliceCanvas.width, sliceCanvas.height
+      );
+      const stretchedUrl = sliceCanvas.toDataURL('image/png');
+      
+      const a = document.createElement('a');
+      a.href = stretchedUrl;
+      
+      let gameName = "game";
+      try { gameName = new URL(appState.value.url).hostname.split('.').slice(-2, -1)[0] || "game"; } catch {}
+      
+      a.download = `${gameName}_${v.name}_${v.width}x${v.height}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      capturedCount++;
+    }
+    
+    // Restore original scroll
+    window.scrollTo({ left: originalScrollX, top: originalScrollY, behavior: 'instant' });
+    
+    if (capturedCount > 0) {
+      $q.notify({ type: 'positive', message: `Saved ${capturedCount} screenshots!` });
+    } else {
+      $q.notify({ type: 'warning', message: 'No enabled views found to capture.' });
+    }
+
+  } catch (err: any) {
+    console.error(err);
+    if (err.name !== 'NotAllowedError') {
+      $q.notify({ type: 'negative', message: 'Failed to capture screenshots' });
+    }
+  }
 }
 
 </script>
